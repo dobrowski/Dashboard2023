@@ -114,20 +114,20 @@ dash.mry <- dash2 %>%
          #  rtype == "D"
            )  %>%
      mutate(indicator2 = recode(indicator,
-                           "ELA" = "4 -  ELA",
-                           "MATH" = "4 -  Math",
-                           "ELPI" = "4 - English Learner <br>Progress",
-                           "GRAD" = "5 - Grad",
-                           "CHRO" = "5 - Chronic <br>Absenteeism",
-                           "SUSP" = "6 - Suspension",
-                           "CCI" = "8 - College Career <br>Readiness"
+                           "ELA" = "4 -  <br>ELA",
+                           "MATH" = "4 -  <br>Math",
+                           "ELPI" = "4 - <br>English <br>Learner <br>Progress",
+                           "GRAD" = "5 - <br>Grad",
+                           "CHRO" = "5 - <br>Chronic <br>Absenteeism",
+                           "SUSP" = "6 - <br>Suspension",
+                           "CCI" = "8 - <br>College <br>Career <br>Readiness"
    )
 )  %>%
     mutate(studentgroup = if_else(indicator == "ELPI", "EL", studentgroup ) ) %>%
     mutate(color = if_else(indicator == "CCI", statuslevel , color )) %>%
     mutate(studentgroup.long.split = case_match(studentgroup, 
                                                 "ALL" ~ "All \nStudents",
-                                                "AA" ~ "Black/\nAfrican-\nAmerican",
+                                                "AA" ~ "Black/African-\nAmerican",
                                                 "AI" ~ "American Indian\nAlaskan Native",
                                                 "AS" ~ "Asian",
                                                 "EL" ~ "English \nLearners",
@@ -263,7 +263,7 @@ dash.graph <- function(df, dist, grouping = "D") {
         filter( 
 
   #          if_else(grouping == "D", str_detect(districtname,dist), str_detect(schoolname,dist)   ) ,
-               currnsizemet == "Y",
+               (indicator == "CCI" & currnsizemet == "Y") | accountabilitymet == "Y" ,
                rtype == grouping
                # statuslevel !=0,
                # !is.na(studentgroup.long)
@@ -292,22 +292,39 @@ dash.graph <- function(df, dist, grouping = "D") {
         scale_fill_manual(values = color.pal,
                           drop = FALSE) +
   #      scale_color_manual( values = da.pal) +
-        labs(title = paste0("2023 Dashboard Status by Student Group for ",dist),
+
+        # Original titling
+        # labs(title = paste0("2023 Dashboard Status by Student Group for ",dist),
+        #      x = "",
+        #      y = ""
+        # )  +
+        
+        # labs(title = "",
+        #            x = "",
+        #            y = ""
+        #       )  +
+        
+        labs(title = "<span style = 'font-size:30pt; font-family:Rockwell; color:#D55E00'>**Student Group Status**</span>",
              x = "",
              y = ""
         )  +
+        theme(plot.title = element_markdown(family = "Rockwell", hjust=0.5)
+              ) +
+        
         guides(#color = guide_legend(title = "DA Eligible",   # Prettify the legends
         #                             title.position = "top",
         #                             label.position = "bottom"
         # ),
-         fill = guide_legend(title = "Dashboard Colors",
-                            title.position = "top",
-                            title.hjust = .5,
-                            label.position = "bottom",
-                            nrow = 1
-                            )
+         fill = "none" #guide_legend(title = "Dashboard Colors",
+                            # title.position = "top",
+                            # title.hjust = .5,
+                            # label.position = "bottom",
+                            # nrow = 1
+                            # )
         ) #+
-     #   theme(legend.key.size = unit(2, 'cm' ))#+
+
+    
+         #   theme(legend.key.size = unit(2, 'cm' ))#+
        # theme(axis.text.y = element_markdown())   # Used to make the axis labels red for DA groups
     
     # ggsave(here("figs",glue("{dist} Dashboard Status 2022 - {Sys.Date()}.png")),
@@ -322,7 +339,7 @@ dash.graph(dash.mry,"Monterey Peninsula")
 dash.graph(dash.mry,"Alisal Community", "S") 
 
 
-
+dash.graph(dash.mry,"Seaside Middle", "S") 
 
 
 
@@ -478,23 +495,47 @@ indicator.bar <- function(df, dist, indie, grouping = "D") {
     #                  indie == "SUSP" ~ "<img src='icons/6suspend.png' width='40' /> Suspension",
     #                  TRUE ~ indie) 
     
-    tit <- case_when(indie == "MATH" ~ "Math",
+    # tit <- case_when(indie == "MATH" ~ "Math",
+    #                  indie == "CHRO" ~ "Chronic Absenteeism",
+    #                  indie == "CCI" ~ "College and Career Readiness",
+    #                  indie == "GRAD" ~ "Graduation Rate",
+    #                  indie == "ELPI" ~ "English Languague Progress (ELPI)",
+    #                  indie == "ELA" ~ "ELA",
+    #                  indie == "SUSP" ~ "Suspension",
+    #                  TRUE ~ indie) 
+    # 
+    # subtit <- case_when(indie == "MATH" ~ "Points represent average Distance from Standards",
+    #                  indie == "CHRO" ~ "Percentage of students missing at least 10% of days",
+    #                  indie == "GRAD" ~ "Percentage of four-year cohort graduates",
+    #                  indie == "CCI" ~ "Percentage of graduates meeting college or career readiness",
+    #                  indie == "ELPI" ~ "Percentage of EL that improve on the ELPAC",
+    #                  indie == "ELA" ~ "Points represent average Distance from Standards",
+    #                  indie == "SUSP" ~ "Percentage of students Suspended at least 1 full day",
+    #                  TRUE ~ indie) 
+    
+    
+    
+    tit <- case_when(indie == "MATH" ~ "Math: Distance from Standard",
                      indie == "CHRO" ~ "Chronic Absenteeism",
-                     indie == "CCI" ~ "College and Career Readiness",
+                     indie == "CCI" ~ "College Career Readiness",
                      indie == "GRAD" ~ "Graduation Rate",
-                     indie == "ELPI" ~ "English Languague Progress (ELPI)",
-                     indie == "ELA" ~ "ELA",
+                     indie == "ELPI" ~ "English Language Progress",
+                     indie == "ELA" ~ "ELA: Distance from Standard",
                      indie == "SUSP" ~ "Suspension",
                      TRUE ~ indie) 
     
-    subtit <- case_when(indie == "MATH" ~ "Points represent average Distance from Standards",
-                     indie == "CHRO" ~ "Percentage of students missing at least 10% of days",
-                     indie == "GRAD" ~ "Percentage of four-year cohort graduates",
-                     indie == "CCI" ~ "Percentage of graduates meeting college or career readiness",
-                     indie == "ELPI" ~ "Percentage of EL that improve on the ELPAC",
-                     indie == "ELA" ~ "Points represent average Distance from Standards",
-                     indie == "SUSP" ~ "Percentage of students Suspended at least 1 full day",
-                     TRUE ~ indie) 
+    subtit <- case_when(indie == "MATH" ~ "",
+                        indie == "CHRO" ~ "",
+                        indie == "GRAD" ~ "",
+                        indie == "CCI" ~ "",
+                        indie == "ELPI" ~ "Percent of EL students who improve on the ELPAC",
+                        indie == "ELA" ~ "",
+                        indie == "SUSP" ~ "Percent of students suspended at least 1 full day",
+                    #    TRUE ~ indie
+                        ) 
+    
+    
+    
     
     
 # doc <-    school_dir %>%
@@ -548,16 +589,25 @@ indicator.bar <- function(df, dist, indie, grouping = "D") {
  #       geom_hline(yintercept = verts, linetype = "longdash" ) + # For the threshhold lines 
         coord_flip() +
         ggthemes::theme_hc() +
-        ggplot2::theme(plot.title.position = "plot",
-                       plot.title = element_markdown(size = 15)) +
+        # ggplot2::theme(plot.title.position = "plot",
+        #                plot.title = element_markdown(size = 15)) +
         scale_color_manual(guide = "none", values = "black") +
          scale_fill_manual(values = color.pal,
                            drop = FALSE) +
-        labs(title = paste0(tit," by Student Group for ",dist),
+        # labs(title = paste0(tit," by Student Group for ",dist),
+        #      subtitle = subtit,
+        #      x = "",
+        #      y = ""
+        # )  +
+        
+        labs(title = glue("<span style = 'font-size:30pt; font-family:Rockwell; color:#D55E00'>**{tit}**</span>"),
              subtitle = subtit,
              x = "",
              y = ""
         )  +
+        theme(plot.title = element_markdown(family = "Rockwell", hjust=0.5)
+        ) +
+        
         theme(legend.position="none")
         # guides(fill = guide_legend(title = "Dashboard Status \nCell Phone Bars",
         #                            title.position = "top",
@@ -642,7 +692,7 @@ run.everything <- function(dist) {
     
 dash.graph(dash.mry,dist)
 
-ggsave(here("figs", dist, paste0(dist," "," Dashboard Basic chart.png")), width = 8, height = 6)
+ggsave(here("figs", dist, paste0(dist," "," Dashboard Basic chart.png")), width = 8, height = 5)
 
 # dash.mry %>%
 #     mutate(statuslevel = statuslevel.orig) %>%
@@ -706,7 +756,7 @@ run.everything.schools <- function(dist) {
 
     dash.graph(dash.mry,s, grouping = "S")
 
-    ggsave(here("figs", dist, s, paste0(s," "," Dashboard Basic chart.png")), width = 8, height = 6)
+    ggsave(here("figs", dist, s, paste0(s," "," Dashboard Basic chart.png")), width = 8, height = 4.5)
 
 
     }

@@ -75,10 +75,16 @@ exit.crit <- dash.mry %>%
            thresh = case_when(indicator == "GRAD" ~  max(change.thresh,status.thresh),
                               indicator == "CCI" ~  max(change.thresh,status.thresh),
                               indicator == "ELPI" ~ max(change.thresh,status.thresh),
-                              indicator == "CHRO" ~ max(change.thresh,status.thresh),
-                                indicator == "SUSP"   ~  max(change.thresh,status.thresh),
+                              indicator == "CHRO" ~  max(change.thresh,status.thresh),
+                                indicator == "SUSP"   ~  max(change.thresh,status.thresh)  ,
                                 indicator == "ELA"   ~ min(change.thresh,status.thresh),
                                 indicator == "MATH"   ~ min(change.thresh,status.thresh)
+           ),
+           threshold = case_when(indicator %in% c('MATH','ELA') ~ as.character(thresh),
+                               TRUE  ~  percent(thresh/100, accuracy = 0.1)
+           ),
+           current = case_when(indicator %in% c('MATH','ELA') ~ as.character(currstatus),
+                               TRUE ~  percent(currstatus/100, accuracy = 0.1)
            ),
            pass.count = case_when(# indicator %in% c('math','ela') ~ thresh,
                      indicator %in% c('CHRO','SUSP') ~ floor( currdenom*thresh/100),
@@ -89,6 +95,10 @@ exit.crit <- dash.mry %>%
                      indicator %in% c('GRAD','CCI','ELPI') ~ 'or more'
            
                       ),
+           pass.count.comp = case_when(indicator %in% c('MATH','ELA') ~ '',
+                                       indicator %in% c('CHRO','SUSP', 'GRAD','CCI','ELPI') ~ paste0(pass.count," ",comper)
+                                       
+           ),
            adjective = case_when(indicator == 'CHRO' ~ 'chroncially absent',
                             indicator == 'SUSP' ~ 'suspended',
                             indicator == 'GRAD' ~ 'graduate',
@@ -98,8 +108,8 @@ exit.crit <- dash.mry %>%
                             
            )
            ) %>%
-    select(cds, districtname, schoolname, studentgroup.long, color, currstatus, currdenom , indicator, ends_with("thresh"), pass.count, comper, adjective) %>%
-    mutate(#sentence_short = glue("{studentgroup.long}  of {currdenom}"),
+    select(cds, districtname, schoolname, studentgroup.long, color,current, currstatus, currdenom , indicator, ends_with("thresh"), threshold, pass.count, comper, pass.count.comp ,adjective) %>%
+     mutate(#sentence_short = glue("{studentgroup.long}  of {currdenom}"),
             sentence_full = ifelse(indicator %in% c("ela","math"),
             glue("{studentgroup.long} student group should have an average of {thresh} from standard or higher based on the {indicator} CAASPP exam to not be in Red."),
                 glue("{studentgroup.long} student group should have {pass.count} {comper} students {adjective} based on the count in 2022 of {currdenom} to not be in Red.")
@@ -110,7 +120,7 @@ exit.crit <- dash.mry %>%
 exit.crit.ss <- "https://docs.google.com/spreadsheets/d/1NVonepHNj96LI5LDYjWqLwah9N6LP1h-TNpdtFoYft8/edit#gid=0"
 
 exit.crit %>%
-    select(districtname, schoolname, studentgroup.long, indicator, currstatus, thresh, pass.count, comper)|> 
+    select(districtname, schoolname, studentgroup.long, indicator, current, threshold, pass.count.comp)|> 
     split(exit.crit$districtname) |>
     imap(\(df, name) write_sheet(data = df, ss = exit.crit.ss, sheet = name))
 
