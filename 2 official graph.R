@@ -127,11 +127,11 @@ dash.mry <- dash2 %>%
     mutate(color = if_else(indicator == "CCI", statuslevel , color )) %>%
     mutate(studentgroup.long.split = case_match(studentgroup, 
                                                 "ALL" ~ "All \nStudents",
-                                                "AA" ~ "Black/African-\nAmerican",
-                                                "AI" ~ "American Indian\nAlaskan Native",
+                                                "AA" ~ "Black/African\nAmerican",
+                                                "AI" ~ "American Indian \nAlaskan Native",
                                                 "AS" ~ "Asian",
                                                 "EL" ~ "English \nLearners",
-                                                "HI" ~ "Latino",
+                                                "HI" ~ "Hispanic",
                                                 "FI" ~ "Filipino",
                                                 "PI" ~ "Pacific \nIslander",
                                                 "FOS" ~ "Foster Youth",
@@ -152,51 +152,6 @@ dash.mry.5change <-  dash.mry %>%
             ) %>%
     select(districtname, studentgroup, indicator, statuslevel, currstatus, change, changelevel)
      
- ### Dashboard Reds for LCAP ------
- 
-
-
-red.sheet <- "https://docs.google.com/spreadsheets/d/1IwUoVW_TnRzWevz5XZuYWqJoWq8p9szwbG0i1QplhUE/edit#gid=0"
-
-reds.pivot.sheet <- "https://docs.google.com/spreadsheets/d/1Y1sQ9hgy4x6CQifrtqYOVUxDc7kIIsisAkNuX272IrM/edit#gid=1972745235"
-
-
-lcap.reds <-  dash.mry %>%
-    filter(#rtype == "D",
-        color == 1 | (indicator == "CCI" & statuslevel == 1 ),
-        !is.na(currnsizemet)
-    ) %>%
-    mutate(districtname = if_else(is.na(charter_flag), districtname, schoolname)) %>%
-    select(districtname, schoolname, charter_flag, studentgroup.long, indicator, statuslevel, currstatus, change, changelevel, color) %>%
-    arrange(districtname, indicator, studentgroup.long, schoolname)
-
-
-lcap.reds.pivot <- lcap.reds %>% 
-    mutate(schoolname = replace_na(schoolname, "Districtwide"),
-           studentgroup.long = replace_na(studentgroup.long, "EL")
-           ) %>%
-    select(districtname, studentgroup.long, schoolname, indicator) %>%
-    # Pivots to have indicator columns with lists of schools 
-    pivot_wider(names_from =  indicator,
-                values_from = schoolname
-                ) %>% 
-    rowwise() %>% 
-    # collapses the list columns to a string for the list of schools 
-    mutate(across(c(ELA, CHRO, MATH, SUSP, CCI, ELPI, GRAD ),  ~ paste(.x, collapse=', ') )
-           ) %>%
-    ungroup()
-
-
-lcap.reds |> 
-    split(lcap.reds$districtname) |>
-    imap(\(df, name) write_sheet(data = df, ss = red.sheet, sheet = name))
-
-
-
-lcap.reds.pivot |> 
-    split(lcap.reds.pivot$districtname) |>
-    imap(\(df, name) write_sheet(data = df, ss = reds.pivot.sheet, sheet = name))
-
 
 #### DA Charts -----
  
@@ -306,7 +261,8 @@ dash.graph <- function(df, dist, grouping = "D") {
         
         labs(title = "<span style = 'font-size:30pt; font-family:Rockwell; color:#D55E00'>**Student Group Status**</span>",
              x = "",
-             y = ""
+             y = "",
+             caption = "Source: California School Dashboard 2023 Downloadable Data Files"
         )  +
         theme(plot.title = element_markdown(family = "Rockwell", hjust=0.5)
               ) +
@@ -336,7 +292,13 @@ dash.graph <- function(df, dist, grouping = "D") {
 dash.graph(dash.mry,"Monterey Peninsula") 
 
 
-dash.graph(dash.mry,"Alisal Community", "S") 
+dash.graph(dash.mry,"Salinas High", "S") 
+
+
+
+dash.mry %>%
+    filter(schoolname == "Salinas High") %>%
+dash.graph("Salinas High", "S") 
 
 
 dash.graph(dash.mry,"Seaside Middle", "S") 
@@ -480,7 +442,7 @@ school_dir <- tbl(con, "SCHOOL_DIR") %>%
     rename("cds" = "cds_code")
 
 
-indicator.bar <- function(df, dist, indie, grouping = "D") {
+indicator.bar <- function(df, dist, indie, grouping = "D", yr = 2023) {
     
     
     
@@ -515,21 +477,21 @@ indicator.bar <- function(df, dist, indie, grouping = "D") {
     
     
     
-    tit <- case_when(indie == "MATH" ~ "Math: Distance from Standard",
+    tit <- case_when(indie == "MATH" ~ "Math",
                      indie == "CHRO" ~ "Chronic Absenteeism",
                      indie == "CCI" ~ "College Career Readiness",
                      indie == "GRAD" ~ "Graduation Rate",
                      indie == "ELPI" ~ "English Language Progress",
-                     indie == "ELA" ~ "ELA: Distance from Standard",
+                     indie == "ELA" ~ "ELA",
                      indie == "SUSP" ~ "Suspension",
                      TRUE ~ indie) 
     
-    subtit <- case_when(indie == "MATH" ~ "",
+    subtit <- case_when(indie == "MATH" ~ "Distance from Standard",
                         indie == "CHRO" ~ "",
                         indie == "GRAD" ~ "",
                         indie == "CCI" ~ "",
                         indie == "ELPI" ~ "Percent of EL students who improve on the ELPAC",
-                        indie == "ELA" ~ "",
+                        indie == "ELA" ~ "Distance from Standard",
                         indie == "SUSP" ~ "Percent of students suspended at least 1 full day",
                     #    TRUE ~ indie
                         ) 
@@ -563,9 +525,10 @@ indicator.bar <- function(df, dist, indie, grouping = "D") {
         { if(grouping == "S" ) filter(., str_detect(schoolname,dist),
                                       rtype == "S") 
             else filter(., str_detect(districtname,dist),
-                                                                                  rtype == "D")} %>%
+                                      rtype == "D")} %>%
         
         filter( # str_detect(districtname, dist),
+            reportingyear == yr,
                 indicator == indie,
                 statuslevel != 0,
                 !is.na(studentgroup.long)) %>%
@@ -594,6 +557,9 @@ indicator.bar <- function(df, dist, indie, grouping = "D") {
         scale_color_manual(guide = "none", values = "black") +
          scale_fill_manual(values = color.pal,
                            drop = FALSE) +
+        
+        { if(indie %in% c("SUSP","CCI","CHRO","GRAD") ) ylim(0.0,NA)  } +
+        
         # labs(title = paste0(tit," by Student Group for ",dist),
         #      subtitle = subtit,
         #      x = "",
@@ -603,9 +569,12 @@ indicator.bar <- function(df, dist, indie, grouping = "D") {
         labs(title = glue("<span style = 'font-size:30pt; font-family:Rockwell; color:#D55E00'>**{tit}**</span>"),
              subtitle = subtit,
              x = "",
-             y = ""
+             y = "",
+             caption = "Source: California School Dashboard 2023 Downloadable Data Files"
         )  +
-        theme(plot.title = element_markdown(family = "Rockwell", hjust=0.5)
+        theme(plot.title.position = 'plot', 
+            plot.title = element_markdown(family = "Rockwell", hjust=0.5),
+              plot.subtitle = element_markdown(family = "Rockwell", hjust=0.5)
         ) +
         
         theme(legend.position="none")
@@ -626,13 +595,16 @@ indicator.bar(dash.mry, "Monterey Peninsula", "MATH")
 indicator.bar(dash.mry, "Salinas Union", "MATH")
 
 
-indicator.bar(dash.mry, "Alisal High", "MATH", grouping = "S")
+indicator.bar(dash.mry, "Pinnacle Coastal", "CCI", grouping = "S")
 
 
 
 indicator.bar(dash.mry, "Greenfield", "CHRO")
 
 
+dash.mry %>%
+    filter(schoolname == "Salinas High") %>%
+    indicator.bar("Salinas High", "CCI", grouping = "S")
 
 
 
@@ -726,19 +698,6 @@ indicator.bar(dash.mry, dist, i)
 
 }
 
-run.everything("Greenfield")
-
-
-run.everything("Monterey Peninsula")
-
-run.everything("Santa Rita")
-
-
-
-
-
-run.everything("Spreckels")
-
 
 
 run.everything.schools <- function(dist) {
@@ -752,11 +711,16 @@ run.everything.schools <- function(dist) {
     
     print(list.schools)
     
+    
+    dash.mry.simple <- dash.mry %>%
+        filter( str_detect(districtname,dist) )
+    
+    
     for (s in list.schools) {
 
-    dash.graph(dash.mry,s, grouping = "S")
+    dash.graph(dash.mry.simple,s, grouping = "S")
 
-    ggsave(here("figs", dist, s, paste0(s," "," Dashboard Basic chart.png")), width = 8, height = 4.5)
+    ggsave(here("figs", dist, s, paste0(s," "," Dashboard Basic chart.png")), width = 8, height = 6)
 
 
     }
@@ -767,7 +731,7 @@ run.everything.schools <- function(dist) {
     
     for (i in indicator.list) {
 
-        indicator.bar(dash.mry, s, i, grouping = "S")
+        indicator.bar(dash.mry.simple, s, i, grouping = "S")
 
         ggsave(here("figs", dist, s, paste0(s," ",i, " barchart.png")), width = 8, height = 4.5)
 
@@ -778,7 +742,36 @@ run.everything.schools <- function(dist) {
 }
 
 
+run.everything("Greenfield")
 run.everything.schools("Greenfield")
 
-
+run.everything("Monterey Peninsula")
 run.everything.schools("Monterey Peninsula")
+
+run.everything("Santa Rita")
+run.everything.schools("Santa Rita")
+
+run.everything("Monterey County Office")
+run.everything.schools("Monterey County Office")
+
+run.everything("Soledad")
+run.everything.schools("Soledad")
+
+run.everything("South Monterey")
+run.everything.schools("South Monterey")
+
+run.everything("North Monterey")
+run.everything.schools("North Monterey")
+
+run.everything("Gonzales")
+run.everything.schools("Gonzales")
+
+run.everything("King City")
+run.everything.schools("King City")
+
+
+run.everything("Salinas Union")
+run.everything.schools("Salinas Union")
+
+
+run.everything("San Ardo")
