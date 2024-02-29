@@ -146,12 +146,91 @@ dash.mry <- dash2 %>%
 # MXGxENxZ5ft2U8bYSJ5tTf$LKjTZv%
 
 
+write_rds(dash.mry,"dash-mry.rds")
+
+
+
 dash.mry.5change <-  dash.mry %>%
      filter(rtype == "D",
             changelevel == 5
             ) %>%
     select(districtname, studentgroup, indicator, statuslevel, currstatus, change, changelevel)
      
+
+
+
+### DA District student groups and indicators details -------
+
+
+
+
+dash.mry.da.details <- read_excel(here("data","assistancestatus23.xlsx"), range = "A6:AD999", sheet = "District and COE 2023") %>%
+    filter(Countyname == "Monterey") %>%
+    pivot_longer(cols = ends_with("priorities")) %>%
+    mutate(indicator.list = case_when(value == "A" ~ "Met Criteria in Priority Areas 4 (Academic Indicators), 5 (Chronic Absenteeism and/or Graduation), and 6 (Suspensions)",
+                                  value == "B" ~ "Met Criteria in Priority Areas 4 (Academic Indicators) and 5 (Chronic Absenteeism and/or Graduation)",
+                                  value == "D" ~ "Met Criteria in Priority Areas 4 (Academic Indicators) and 6 (Suspensions)",
+                                  value == "C" ~ "Met Criteria in Priority Areas 5 (Chronic Absenteeism and/or Graduation) and 6 (Suspensions)",
+                                  value =="E" ~ 	"Met Criteria in Priority Areas 4 (Academic Indicators) and 8 (College/Career)",
+                                  value =="F" ~ 	"Met Criteria in Priority Areas 5 (Chronic Absenteeism and/or Graduation) and 8 (College/Career)",
+                                  value =="G" ~ 	"Met Criteria in Priority Areas 6 (Suspensions) and 8 (College/Career)",
+                                  value =="H" ~ 	"Met Criteria in Priority Areas 4 (Academic Indicators), 5 (Chronic Absenteeism and/or Graduation), and 8 (College/Career)",
+                                  value =="I" ~ 	"Met Criteria in Priority Areas 4 (Academic Indicators), 6 (Suspensions), and 8 (College/Career)",
+                                  value =="J" ~ 	"Met Criteria in Priority Areas 5 (Chronic Absenteeism and/or Graduation), 6 (Suspensions), and 8 (College/Career)",
+                                  value =="K" ~ 	"Met Criteria in Priority Areas 4 (Academic Indicators), 5 (Chronic Absenteeism and/or Graduation), 6 (Suspensions), and 8 (College/Career)"
+    ),
+    # studentgroup.long = case_when(name == "AApriorities"	~ "Black/African American",
+    #                               name == "AIpriorities" ~	"American Indian or Alaska Native American",
+    #                               name == "ASpriorities" ~	"Asian American",
+    #                               name == "ELpriorities" ~	"English Learner",
+    #                               name == "FIpriorities" ~	"Filipino",
+    #                               name == "FOSpriorities"	 ~ "Foster Youth",
+    #                               name == "HIpriorities" ~	"Hispanic",
+    #                               name == "HOMpriorities"	~ "Homeless",
+    #                               name == "PIpriorities" ~	"Pacific Islander",
+    #                               name == "SEDpriorities" ~	"Socioeconomically Disadvantaged",
+    #                               name == "SWDpriorities" ~	"Students with Disabilities",
+    #                               name == "TOMpriorities" ~	"Two or More Races",
+    #                               name == "WHpriorities" ~	"White"
+    # ),
+    cds = CDS
+    ) %>% 
+    mutate(studentgroup = str_remove(name,"priorities")) %>%
+    filter(str_detect(AssistanceStatus2023, "Differ" ),
+           value != "*") %>%
+    left_join(dash.mry, by = c("studentgroup", "cds") ) %>%
+    mutate(keeper = case_when(value == "F" & indicator %in% c("CHRO","CCI","GRAD")    ~ TRUE,
+                              value == "A" & indicator %in% c("ELA","MATH","CHRO","GRAD", "SUSP") ~ TRUE,
+                              value == "B" & indicator %in% c("ELA","MATH","CHRO","GRAD")~ TRUE,
+                              value == "D" & indicator %in% c("ELA","MATH","SUSP")~ TRUE,
+                              value == "C" & indicator %in% c("CHRO","SUSP","GRAD")~ TRUE,
+                              value == "E" & indicator %in% c("ELA","MATH","CCI")~ TRUE, 
+                              value == "G" & indicator %in% c("SUSP","CCI")~ TRUE,
+                              value == "H" & indicator %in% c("ELA","MATH","CHRO","CCI","GRAD")~ 	TRUE,
+                              value == "I" & indicator %in% c("ELA","MATH","SUSP","CCI")~ TRUE,
+                              value == "J" & indicator %in% c("CHRO","SUSP","CCI","GRAD")~ 	TRUE,
+                              value == "K" & indicator %in% c("ELA","MATH","CHRO","CCI","GRAD", "SUSP")~ TRUE ,
+                              TRUE ~ FALSE)
+    )%>%
+    filter(keeper == TRUE,
+           (indicator == "CCI" & statuslevel == 1)|color == 1|(indicator %in% c( "ELA","MATH") & color == 2)
+    ) %>%
+    select(cds, LEAname, studentgroup, studentgroup.long, name, indicator, indicator.list)
+
+
+
+
+write_rds(dash.mry.da.details, "dash_mry_da_details.rds")
+
+
+
+
+
+
+
+
+
+
 
 #### DA Charts -----
  
@@ -589,17 +668,122 @@ indicator.bar <- function(df, dist, indie, grouping = "D", yr = 2023) {
 }
 
 
+# Adds little arrows to show change from prior year
+indicator.bar2 <- function(df, dist, indie, grouping = "D", yr = 2023) {
+    
+    
+    
+    ### Labels ----  
+    
+    tit <- case_when(indie == "MATH" ~ "Math",
+                     indie == "CHRO" ~ "Chronic Absenteeism",
+                     indie == "CCI" ~ "College Career Readiness",
+                     indie == "GRAD" ~ "Graduation Rate",
+                     indie == "ELPI" ~ "English Language Progress",
+                     indie == "ELA" ~ "ELA",
+                     indie == "SUSP" ~ "Suspension",
+                     TRUE ~ indie) 
+    
+    subtit <- case_when(indie == "MATH" ~ "Distance from Standard",
+                        indie == "CHRO" ~ "",
+                        indie == "GRAD" ~ "",
+                        indie == "CCI" ~ "",
+                        indie == "ELPI" ~ "Percent of EL students who improve on the ELPAC",
+                        indie == "ELA" ~ "Distance from Standard",
+                        indie == "SUSP" ~ "Percent of students suspended at least 1 full day",
+                        #    TRUE ~ indie
+    ) 
+    
 
-indicator.bar(dash.mry, "Monterey Peninsula", "MATH")
+    ### Graph itself ----
+    
+    df %>%
+        { if(grouping == "S" ) filter(., str_detect(schoolname,dist),
+                                      rtype == "S") 
+            else filter(., str_detect(districtname,dist),
+                        rtype == "D")} %>%
+        
+        filter( # str_detect(districtname, dist),
+            reportingyear == yr,
+            indicator == indie,
+            statuslevel != 0,
+            !is.na(studentgroup.long)) %>%
+        mutate(shifty = ifelse(currstatus >0, 1, -.05 ) ,
+               labby = case_when(indie == "MATH" ~ as.character(currstatus),
+                                 indie == "ELA" ~ as.character(currstatus),
+                                 TRUE ~ percent(accuracy = 0.1, x = currstatus/100)),
+               labby.col = ifelse(color < 4, "white", "black"),
+               studentgroup.long.count = paste0(studentgroup.long," (",currdenom,")")
+               
+        ) %>%
+        ggplot( aes(x = reorder(studentgroup.long.count, currstatus ),
+                    y = currstatus,
+                    fill = factor(color, levels = c("1","2","3","4","5")),
+                    label = labby,
+                    xend = reorder(studentgroup.long.count, currstatus ),
+                    yend = priorstatus
+                    )
+                
+        ) + 
+        geom_col() +
+
+        geom_segment(aes(xend = reorder(studentgroup.long.count, currstatus ),
+                         yend = currstatus,
+                         x = reorder(studentgroup.long.count, currstatus ),
+                         y = priorstatus,
+                         ),
+                      arrow = arrow(
+                          length=unit(.3, 'cm'),
+                          type = "closed"
+                          ),
+                     lineend = "round",
+                      linejoin = "mitre",
+                     color = "darkgrey"
+   #                  lwd = 3
+        ) + 
+        geom_text(position = position_dodge2(width = 1),
+                  aes(hjust =  shifty, color = "white")
+        ) +
+        #       geom_hline(yintercept = verts, linetype = "longdash" ) + # For the threshhold lines 
+        coord_flip() +
+        ggthemes::theme_hc() +
+        # ggplot2::theme(plot.title.position = "plot",
+        #                plot.title = element_markdown(size = 15)) +
+        scale_color_manual(guide = "none", values = "black") +
+        scale_fill_manual(values = color.pal,
+                          drop = FALSE) +
+        
+        { if(indie %in% c("SUSP","CCI","CHRO","GRAD") ) ylim(0.0,NA)  } +
+        
+        labs(title = glue("<span style = 'font-size:30pt; font-family:Rockwell; color:#D55E00'>**{tit}**</span>"),
+             subtitle = subtit,
+             x = "",
+             y = "",
+             caption = "Source: California School Dashboard 2023 Downloadable Data Files"
+        )  +
+        theme(plot.title.position = 'plot', 
+              plot.title = element_markdown(family = "Rockwell", hjust=0.5),
+              plot.subtitle = element_markdown(family = "Rockwell", hjust=0.5)
+        ) +
+        
+        theme(legend.position="none")
+
+    
+}
+
+
+
+
+indicator.bar2(dash.mry, "Monterey Peninsula", "MATH")
 
 indicator.bar(dash.mry, "Salinas Union", "MATH")
 
 
-indicator.bar(dash.mry, "Pinnacle Coastal", "CCI", grouping = "S")
+indicator.bar2(dash.mry, "Pinnacle Coastal", "CCI", grouping = "S")
 
 
 
-indicator.bar(dash.mry, "Greenfield", "CHRO")
+indicator.bar2(dash.mry, "Greenfield", "CHRO")
 
 
 dash.mry %>%
@@ -775,3 +959,18 @@ run.everything.schools("Salinas Union")
 
 
 run.everything("San Ardo")
+
+
+run.everything("Chualar")
+
+
+run.everything("Carmel")
+run.everything.schools("Carmel")
+
+
+run.everything("Alisal")
+run.everything.schools("Alisal")
+
+
+run.everything("Salinas City")
+run.everything.schools("Salinas City")

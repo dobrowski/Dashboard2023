@@ -53,10 +53,25 @@ exit.crit <- dash.mry %>%
                                      
                                      ),
            change.thresh = case_when(indicator == "GRAD" ~  68,
-                                     indicator == "CCI" ~ currstatus + 2,
-                                       indicator == "CHRO" ~ currstatus -.5,
-                                     indicator == "ELPI" ~ currstatus + 2,
                                      
+                                     # Low status calculations 
+                                     indicator == "CCI" ~ currstatus + 2,
+                                     
+                                     indicator == "CHRO" & statuslevel == 2 ~ currstatus + 3,
+                                     indicator == "ELPI" & statuslevel == 2 ~ currstatus - 10,
+                                     
+                                     indicator == "SUSP" & statuslevel == 2 & eil_code %in% c("ELEM","ELEMHIGH")  ~  currstatus +2,  # Elem
+                                     indicator == "SUSP" & statuslevel == 2 & eil_code == "INTMIDJR"  ~  currstatus +4,  # Elem
+                                     indicator == "SUSP" & statuslevel == 2 & eil_code == "HS" ~ currstatus +3,  # Elem
+                                     
+                                     indicator == "SUSP" & statuslevel == 2 & doc %in% c(52)  ~  currstatus +2,  # Elem
+                                     indicator == "SUSP" & statuslevel == 2 & doc %in% c("00",54)  ~  currstatus +2,  # Unified
+                                     indicator == "SUSP" & statuslevel == 2 & doc %in% c(56)  ~  currstatus +3,  # High
+                                     
+
+                                     # Very Low status calculations
+                                     indicator == "CHRO" ~ currstatus -.5,
+                                     indicator == "ELPI" ~ currstatus + 2,
                                      indicator == "SUSP" & eil_code %in% c("ELEM","ELEMHIGH")  ~  currstatus -.3,  # Elem
                                      indicator == "SUSP" & eil_code == "INTMIDJR"  ~  currstatus -.3,  # Elem
                                      indicator == "SUSP" & eil_code == "HS" ~ currstatus -.3,  # Elem
@@ -72,9 +87,16 @@ exit.crit <- dash.mry %>%
     ) %>%
     rowwise() %>%
     mutate(
-           thresh = case_when(indicator == "GRAD" ~  max(change.thresh,status.thresh),
-                              indicator == "CCI" ~  max(change.thresh,status.thresh),
-                              indicator == "ELPI" ~ max(change.thresh,status.thresh),
+           thresh = case_when(
+               indicator == "CHRO" & statuslevel == 2 ~  min(change.thresh,status.thresh),
+               indicator == "ELPI" & statuslevel == 2 ~ max(change.thresh,status.thresh),
+               indicator == "SUSP" & statuslevel == 2  ~  min(change.thresh,status.thresh)  ,
+               
+               
+               
+               indicator == "GRAD" ~  max(change.thresh,status.thresh),
+                              indicator == "CCI" ~  min(change.thresh,status.thresh),
+                              indicator == "ELPI" ~ min(change.thresh,status.thresh),
                               indicator == "CHRO" ~  max(change.thresh,status.thresh),
                                 indicator == "SUSP"   ~  max(change.thresh,status.thresh)  ,
                                 indicator == "ELA"   ~ min(change.thresh,status.thresh),
@@ -108,7 +130,8 @@ exit.crit <- dash.mry %>%
                             
            )
            ) %>%
-    select(cds, districtname, schoolname, studentgroup.long, color,current, currstatus, currdenom , indicator, ends_with("thresh"), threshold, pass.count, comper, pass.count.comp ,adjective) %>%
+    select(cds, districtname, schoolname, studentgroup.long, color,current, currstatus, # statuslevel, 
+           currdenom , indicator, ends_with("thresh"), threshold, pass.count, comper, pass.count.comp ,adjective) %>%
      mutate(#sentence_short = glue("{studentgroup.long}  of {currdenom}"),
             sentence_full = ifelse(indicator %in% c("ela","math"),
             glue("{studentgroup.long} student group should have an average of {thresh} from standard or higher based on the {indicator} CAASPP exam to not be in Red."),
