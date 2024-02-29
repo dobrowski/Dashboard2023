@@ -9,7 +9,7 @@ format:
 editor: visual
 ---
 
-The following lists provide links to the Dashboard Summary web pages developed by MCOE based for Level 2 support based on data from CDE.
+The following lists provide links to the Dashboard Summary web pages developed by MCOE based for Level 2 support based on data from CDE. For last year's webpages, please see <https://da-monterey.netlify.app/>
 
 ```{r}
 #| include: false
@@ -64,6 +64,8 @@ datatable(index.tbl,
 ```
 
 ## CSI Schools
+
+To be developed
 
 ```{r}
 #| echo: false
