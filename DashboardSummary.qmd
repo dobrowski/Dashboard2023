@@ -504,6 +504,20 @@ This report is created to assist `r dist.name` in reflecting on the student grou
 ```{r}
 #| echo: false
 #| warning: false
+#| message: false
+#| results: asis
+
+
+http_address <- glue::glue("https://www.caschooldashboard.org/reports/{dist}/{yr}")
+
+cat("The graphic below shows the color for each student group for each indicator from the [California Dashboard", yr, "](", http_address, ")")
+```
+
+
+
+```{r}
+#| echo: false
+#| warning: false
 #| include: true
 #| fig-width: 7
 #| fig-height: 8
@@ -512,25 +526,22 @@ dash.mry %>%
  #       mutate(statuslevel = statuslevel.orig) %>%
     dash.graph(dist.name) 
 
-
 ```
 
 ## Qualifying Groups
 
 Differentiated Assistance is determined by the California Dashboard. Colors reflect the latest available status from `r yr`.
 
-The graphic below shows the color for each student group for each indicator from the California `r yr` Dashboard.
-
 ```{r}
 #| results: asis 
 #| echo: false 
-http_address <- glue::glue("https://www.caschooldashboard.org/reports/{dist}/{yr}")
-cat("[California Dashboard 2023](", http_address, ")")
+
 
 
 da.inds <- dash.mry.da.details %>%
     filter(cds == dist) %>%
     select(indicator) %>%
+    filter(indicator != "CCI") %>% # Only for 2023 since no history to compare
     unique() %>%
     unlist()
 
@@ -546,9 +557,7 @@ da.groups <- dash.mry.da.details %>%
 
 ```
 
-The table below displays which student groups qualified `r dist.name` to be eligible for [Differentiated Assistance](https://www.cde.ca.gov/ta/ac/cm/leaproposedcrit.asp). Moreover, for each student group it shows which Priority Areas and associated indicators met qualification criteria.
-
-As a reminder, COEs must offer differentiated assistance to a school district if any student group meets the criteria for two or more LCFF priorities according to California Education Code Section 52071(c). [California's System of Support](https://www.cde.ca.gov/sp/sw/t1/csss.asp)
+The table below displays which student groups qualified `r dist.name` to be eligible for [Differentiated Assistance](https://www.cde.ca.gov/ta/ac/cm/leaproposedcrit.asp) by meeting the criteria for two or more LCFF priority areas according to California Education Code Section 52071(c). [California's System of Support](https://www.cde.ca.gov/sp/sw/t1/csss.asp). The table shows for each student group which Priority Areas and associated indicators met qualification criteria.
 
 ```{r}
 #| echo: false
@@ -569,7 +578,7 @@ dash.mry.da.details %>%
 
 ## Status Details for all Indicators
 
-These graphs represent all of the indicators from the Dashboard and show how each of the student groups performed. The vertical lines represent the cutpoints between different status levels.
+These graphs represent all of the indicators from the Dashboard and show how each of the student groups performed. The light grey arrows represent change from the prior year.  Arrows pointing to the right increased and to the left decreased, and the longer the tail length the greater the change.
 
 <details>
 
@@ -578,10 +587,16 @@ These graphs represent all of the indicators from the Dashboard and show how eac
 ```{r}
 #| echo: false
 #| warning: false
-#| fig-width: 7
+#| fig-width: 9
 #| fig-height: 8
 
-indicator.list <- dash.mry %>% select(indicator) %>% filter(!str_detect(indicator,"CENSUS")) %>% unique() %>% unlist()
+indicator.list <- dash.mry %>%
+        filter(cds == dist,
+               !is.na(currstatus)) %>%
+    select(indicator) %>%
+    filter(!str_detect(indicator,"CENSUS")) %>%
+    unique() %>%
+    unlist()
 
 for (i in indicator.list) {
 
