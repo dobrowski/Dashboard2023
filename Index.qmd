@@ -34,7 +34,7 @@ da.dists <- dash.mry.da.details %>%
 index.tbl <- tibble(cds = da.dists) %>%
     rowwise() %>%
     mutate(dist.name = mcoe_name(cds),
-           url = paste0("<a href='","https://da-monterey.netlify.app/","DashboardSummary", dist.name, ".html","'>","https://da-monterey.netlify.app/","DashboardSummary", dist.name, ".html","</a>"  ) ) %>%
+           url = paste0("<a href='","https://monterey-dashboard2023.netlify.app/output/","dashboard2023summary", cds, ".html","'>","https://monterey-dashboard2023.netlify.app/output/","dashboard2023summary", cds, ".html","</a>"  ) ) %>%
     select(-cds)
 
 # atsi.cde.mry.michelle <- read_rds("atsi list michelle.rds")
