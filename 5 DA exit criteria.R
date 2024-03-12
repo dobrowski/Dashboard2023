@@ -149,3 +149,4 @@ exit.crit %>%
 
 
 
+write_rds(exit.crit, "exit-crit.rds")

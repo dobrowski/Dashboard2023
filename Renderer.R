@@ -93,7 +93,7 @@ school.list <- c("27659876026025" # Captain Cooper
 
 
 
-school.list <- unique(atsi.cde.mry$cds) 
+school.list <- unique(essa_mry$cds) 
 
 
 
