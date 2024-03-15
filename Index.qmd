@@ -5,7 +5,8 @@ format:
         theme: pulse
         embed-resources: true
         page-layout: full
-
+        include-in-header:
+            - file: google-analytics.html
 editor: visual
 ---
 
@@ -41,6 +42,11 @@ index.tbl <- tibble(cds = da.dists) %>%
 
 
 
+essa_mry <- read_rds("essa_mry.rds")
+
+essa.tbl <- essa_mry %>%
+    select(cds,districtname, schoolname, AssistanceStatus2023) %>%
+    mutate(url = paste0("<a href='","https://monterey-dashboard2023.netlify.app/output/","DashboardSummary", cds, ".html","'>","https://monterey-dashboard2023.netlify.app/output/","DashboardSummary", cds, ".html","</a>"  ) )
 
 
 ```
@@ -63,21 +69,21 @@ datatable(index.tbl,
 
 ```
 
-## CSI Schools
+## CSI/ATSI Schools
 
-To be developed
+The following lists provide links to the Dashboard Summary web pages developed by MCOE based for CSI/ATSI support based on data from CDE.
 
 ```{r}
 #| echo: false
 #| warning: false
 
-# datatable(atsi.cde.mry.michelle,
-#           colnames = c("School", "District", "Student Group(s)", "URL"),
-#           caption = "List of Schools in Additional Targeted Support and Improvement (ATSI)",
-#           rownames = FALSE,
-#           options = list(lengthChange = FALSE,
-#                          searching = TRUE),
-#        escape = FALSE) 
+datatable(essa.tbl,
+          colnames = c("CDS", "District", "School","URL"),
+          caption = "List of Schools in CSI and ATSI",
+          rownames = FALSE,
+          options = list(lengthChange = FALSE,
+                         searching = TRUE),
+       escape = FALSE)
 
 
 ```
