@@ -9,6 +9,9 @@ library(quarto)
 
 
 
+essa_mry <- read_rds("essa_mry.rds")
+
+
 dash.mry.da.details <- read_rds("dash_mry_da_details.rds")
 
 
@@ -72,9 +75,9 @@ school.list <- c(
  # "27661592730109",
  # "27661592730273",
  "27661590124610",
- "27661596058762"
+ # "27661596058762"
 # "27660682730174",
-# "27661592734481"
+ "27661592734481"
 
 
 )
