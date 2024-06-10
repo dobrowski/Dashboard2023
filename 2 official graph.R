@@ -1,7 +1,7 @@
 
 library(vroom)
 library(scales)
-
+library(readxl)
 library(googlesheets4)
 
 
@@ -163,6 +163,7 @@ dash.mry.5change <-  dash.mry %>%
 
 
 
+da_all <- read_excel(here("data","assistancestatus23.xlsx"), range = "A6:AD999", sheet = "District and COE 2023")
 
 dash.mry.da.details <- read_excel(here("data","assistancestatus23.xlsx"), range = "A6:AD999", sheet = "District and COE 2023") %>%
     filter(Countyname == "Monterey") %>%
